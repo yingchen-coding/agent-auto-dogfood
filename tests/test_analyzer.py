@@ -57,3 +57,36 @@ def test_voice_transcription_feedback_is_grouped():
     )
     intents = {item["intent"] for item in report["action_items"]}
     assert "voice_transcription" in intents
+
+
+def test_ci_failure_notification_requires_latest_head_check():
+    report = build_action_items(
+        [
+            Message(
+                session_id="repo",
+                role="user",
+                text=(
+                    "[yingchen-coding/event-graph] Run failed: CI - main (f6de7ff) "
+                    "what the heck"
+                ),
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "ci_status" in intents
+    assert "latest remote head" in intents["ci_status"]["recommended_action"]
+
+
+def test_fix_all_until_clean_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="quality",
+                role="user",
+                text="fix all, find bug fix bug, run it again until no more fixes are needed",
+            )
+        ]
+    )
+    intents = {item["intent"] for item in report["action_items"]}
+    assert "iterate_until_clean" in intents
+    assert "unknown" not in intents

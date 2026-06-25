@@ -23,6 +23,7 @@ NEGATIVE_TERMS = {
     "slow",
     "stuck",
     "useless",
+    "what the heck",
     "wrong",
     "same issue",
     "不对",
@@ -81,6 +82,24 @@ INTENT_PATTERNS = {
         "语音",
     ),
     "process_compliance": ("pr-review", "commit", "push", "upload", "validate", "验证", "提交"),
+    "ci_status": (
+        "ci",
+        "github actions",
+        "run failed",
+        "workflow",
+        "head",
+        "commit",
+        "actions/runs",
+    ),
+    "iterate_until_clean": (
+        "fix all",
+        "find bug fix bug",
+        "until no more",
+        "until no more fixes",
+        "keep improve",
+        "continue until",
+        "run it again",
+    ),
 }
 
 
@@ -242,6 +261,15 @@ def _recommended_action(intent: str) -> str:
         "process_compliance": (
             "Turn repeated workflow instructions into preflight checks that run before commit, "
             "push, or completion."
+        ),
+        "ci_status": (
+            "When a user shows a failed CI notification, compare the failed commit to the latest "
+            "remote head and latest workflow run before reporting status; stale failures should "
+            "be labeled as old runs, while current-head failures must be fixed."
+        ),
+        "iterate_until_clean": (
+            "Treat fix-all requests as a loop: inspect, patch, run validation, inspect the new "
+            "output, and repeat until clean or concretely blocked."
         ),
         "unknown": "Review examples manually and add a new intent classifier pattern.",
     }.get(intent, "Review examples and convert repeated failure into a product fix.")
