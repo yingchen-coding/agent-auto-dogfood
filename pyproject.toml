@@ -9,6 +9,23 @@ description = "Turn AI-agent traces into product todos for automatic dogfooding.
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
+authors = [{ name = "Ying Chen" }]
+keywords = ["ai-agents", "dogfooding", "agent-traces", "product-management", "todos"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/yingchen-coding/agent-auto-dogfood"
+Repository = "https://github.com/yingchen-coding/agent-auto-dogfood"
+Issues = "https://github.com/yingchen-coding/agent-auto-dogfood/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.11"]
