@@ -25,7 +25,6 @@ NEGATIVE_TERMS = {
     "useless",
     "wrong",
     "same issue",
-    "still",
     "不对",
     "不好",
     "不好唱",
@@ -57,9 +56,19 @@ INTENT_PATTERNS = {
     "login": ("login", "sign in", "auth", "password", "登录", "密码"),
     "accuracy": ("wrong", "incorrect", "hallucination", "不对", "错", "瞎编"),
     "latency": ("slow", "timeout", "卡", "慢", "latency"),
-    "handoff": ("human", "agent", "support", "人工", "客服"),
+    "handoff": ("human", "support", "escalate", "handoff", "人工", "客服"),
     "tool_failure": ("tool", "api", "error", "exception", "failed", "报错"),
-    "state_update": ("still", "same issue", "还在", "没更新", "没有改", "啥也没发生"),
+    "state_update": (
+        "same issue",
+        "same bug",
+        "still wrong",
+        "still broken",
+        "still there",
+        "还在",
+        "没更新",
+        "没有改",
+        "啥也没发生",
+    ),
     "creative_quality": ("歌词", "押韵", "好唱", "质感", "生硬", "空了", "扎心", "不自然"),
     "voice_transcription": (
         "voice",
@@ -139,7 +148,10 @@ def classify_message(message: Message) -> dict[str, Any]:
         if any(term in lowered or term in message.text for term in terms)
     ]
     repeated_question = bool(
-        re.search(r"\b(again|still|already|same issue)\b", lowered)
+        re.search(
+            r"\b(again|already|same issue|still (wrong|broken|there|failing|not|bad))\b",
+            lowered,
+        )
         or any(term in message.text for term in ("还在", "又", "还是", "没有改", "没更新"))
     )
     unresolved = message.resolved is False
