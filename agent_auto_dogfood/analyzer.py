@@ -24,13 +24,31 @@ NEGATIVE_TERMS = {
     "stuck",
     "useless",
     "wrong",
+    "same issue",
+    "still",
     "不对",
     "不好",
+    "不好唱",
+    "不好用",
     "不会",
     "不能",
+    "不自然",
+    "不押韵",
     "卡住",
+    "卡住了",
+    "啥也没发生",
+    "没发生",
+    "没更新",
+    "没有改",
     "太差",
+    "太奇怪",
     "没用",
+    "没救",
+    "有毛病",
+    "生硬",
+    "空了",
+    "怪",
+    "还在",
     "错",
 }
 
@@ -41,6 +59,19 @@ INTENT_PATTERNS = {
     "latency": ("slow", "timeout", "卡", "慢", "latency"),
     "handoff": ("human", "agent", "support", "人工", "客服"),
     "tool_failure": ("tool", "api", "error", "exception", "failed", "报错"),
+    "state_update": ("still", "same issue", "还在", "没更新", "没有改", "啥也没发生"),
+    "creative_quality": ("歌词", "押韵", "好唱", "质感", "生硬", "空了", "扎心", "不自然"),
+    "voice_transcription": (
+        "voice",
+        "transcript",
+        "transcriber",
+        "accuracy",
+        "latency",
+        "中英文",
+        "转录",
+        "语音",
+    ),
+    "process_compliance": ("pr-review", "commit", "push", "upload", "validate", "验证", "提交"),
 }
 
 
@@ -107,7 +138,10 @@ def classify_message(message: Message) -> dict[str, Any]:
         for name, terms in INTENT_PATTERNS.items()
         if any(term in lowered or term in message.text for term in terms)
     ]
-    repeated_question = bool(re.search(r"\b(again|still|already|same issue)\b", lowered))
+    repeated_question = bool(
+        re.search(r"\b(again|still|already|same issue)\b", lowered)
+        or any(term in message.text for term in ("还在", "又", "还是", "没有改", "没更新"))
+    )
     unresolved = message.resolved is False
     score = len(negative_hits) + len(intents) * 0.5 + repeated_question + unresolved
     return {
@@ -181,5 +215,21 @@ def _recommended_action(intent: str) -> str:
         "latency": "Profile slow traces and add timeout/retry visibility.",
         "handoff": "Improve escalation trigger and human handoff instructions.",
         "tool_failure": "Fix failing tool/API path and add trace-level error reporting.",
+        "state_update": (
+            "Compare latest output against the requested change and block completion if the "
+            "same defect remains."
+        ),
+        "creative_quality": (
+            "Extract concrete style constraints, preserve locked text, and verify rhyme/"
+            "singability before responding."
+        ),
+        "voice_transcription": (
+            "Measure mixed-language accuracy and latency from real traces before changing "
+            "transcription defaults."
+        ),
+        "process_compliance": (
+            "Turn repeated workflow instructions into preflight checks that run before commit, "
+            "push, or completion."
+        ),
         "unknown": "Review examples manually and add a new intent classifier pattern.",
     }.get(intent, "Review examples and convert repeated failure into a product fix.")
