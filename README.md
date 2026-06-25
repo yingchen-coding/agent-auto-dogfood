@@ -1,10 +1,19 @@
-# Agent Feedback Actions
+# Agent Auto Dogfood
 
-Agent Feedback Actions is a local Brizz-style prototype for AI-agent product analytics.
+Agent Auto Dogfood turns AI-agent traces into product todos.
 
-It reads AI conversation traces, finds dissatisfied user messages, groups them by intent, and turns
-the evidence into prioritized action items. The goal is to move from "users are unhappy" to "ship
-PDF export", "fix login failure", or "improve grounding for missing-file answers."
+The premise is simple: if an agent frustrates users, repeats a bad answer, fails a tool call, or
+cannot complete an export/login/accuracy workflow, that trace should become a concrete todo with
+evidence. The agent system should dogfood itself by reading its own traces and producing the next
+fix list.
+
+## What It Does
+
+- Reads JSONL or CSV agent traces.
+- Detects user dissatisfaction and repeated failure signals.
+- Groups failures by intent such as export, login, accuracy, latency, handoff, and tool failure.
+- Produces ranked todos with affected sessions and example evidence.
+- Keeps the output deterministic and local.
 
 ## Install
 
@@ -15,8 +24,8 @@ python -m pip install -e '.[dev]'
 ## Quick Start
 
 ```bash
-agent-feedback-actions examples/traces.jsonl
-agent-feedback-actions examples/traces.jsonl --out out/action-items.json
+agent-auto-dogfood examples/traces.jsonl
+agent-auto-dogfood examples/traces.jsonl --out out/todos.json
 ```
 
 ## Input
@@ -39,7 +48,7 @@ CSV is also supported with columns such as `session_id,role,text,resolved,ts`.
 
 - total messages
 - dissatisfied message count
-- action items grouped by user intent
+- todos grouped by user intent
 - priority
 - affected sessions
 - recommended product fix
@@ -47,8 +56,8 @@ CSV is also supported with columns such as `session_id,role,text,resolved,ts`.
 
 ## What To Build Next
 
-- LLM-assisted intent labeling.
-- Integration adapters for LangSmith, Langfuse, OpenTelemetry, and custom agent traces.
-- Trend windows by week/release.
-- PRD generation from repeated action items.
+- LangSmith, Langfuse, OpenTelemetry, and custom trace adapters.
+- LLM-assisted intent clustering.
+- Weekly todo reports by release.
+- PRD generation from repeated todos.
 - Regression checks after fixes ship.

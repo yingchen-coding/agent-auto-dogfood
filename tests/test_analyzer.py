@@ -1,4 +1,4 @@
-from agent_feedback_actions.analyzer import build_action_items, load_messages
+from agent_auto_dogfood.analyzer import build_action_items, load_messages
 
 
 def test_trace_messages_become_prioritized_action_items():

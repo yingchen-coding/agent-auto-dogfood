@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agent-feedback-actions"
+name = "agent-auto-dogfood"
 version = "0.1.0"
-description = "Mine AI-agent traces for dissatisfaction patterns and turn them into action items."
+description = "Turn AI-agent traces into product todos for automatic dogfooding."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -14,7 +14,7 @@ requires-python = ">=3.10"
 dev = ["pytest>=8", "ruff>=0.11"]
 
 [project.scripts]
-agent-feedback-actions = "agent_feedback_actions.cli:main"
+agent-auto-dogfood = "agent_auto_dogfood.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

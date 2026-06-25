@@ -9,7 +9,7 @@ from .analyzer import build_action_items, load_messages
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Turn dissatisfied AI-agent trace messages into action items."
+        description="Turn AI-agent traces into dogfooding todos."
     )
     parser.add_argument("trace_file", type=Path)
     parser.add_argument("--out", type=Path, default=None)
