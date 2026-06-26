@@ -90,3 +90,76 @@ def test_fix_all_until_clean_is_not_unknown():
     intents = {item["intent"] for item in report["action_items"]}
     assert "iterate_until_clean" in intents
     assert "unknown" not in intents
+
+
+def test_neutral_chinese_ability_question_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="medical",
+            role="user",
+            text="所以做按摩跟艾灸有关系吗，能不能做按摩",
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_chinese_tool_complaint_still_counts():
+    item = classify_message(
+        Message(
+            session_id="repo",
+            role="user",
+            text="这个功能不能用，你怎么还不会改",
+        )
+    )
+    assert "不能" in item["negative_terms"]
+    assert "不会" in item["negative_terms"]
+    assert item["dissatisfaction_score"] >= 2
+
+
+def test_accuracy_complaint_keeps_contextual_negative_term():
+    item = classify_message(
+        Message(
+            session_id="voice",
+            role="user",
+            text="accuracy不好，latency也要提高",
+        )
+    )
+    assert "不好" in item["negative_terms"]
+    assert "voice_transcription" in item["intents"]
+
+
+def test_intent_keyword_without_complaint_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="repo",
+            role="user",
+            text="commit and push",
+        )
+    )
+    assert "process_compliance" in item["intents"]
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_generic_haishi_question_is_not_repeated_failure():
+    item = classify_message(
+        Message(
+            session_id="finance",
+            role="user",
+            text="这几股有在亏还是在涨",
+        )
+    )
+    assert item["repeated_question"] is False
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_unfixed_chinese_repeated_failure_still_counts():
+    item = classify_message(
+        Message(
+            session_id="lyrics",
+            role="user",
+            text="还是没更新，刚才的问题还在",
+        )
+    )
+    assert item["repeated_question"] is True
+    assert item["dissatisfaction_score"] >= 2

@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-NEGATIVE_TERMS = {
+STRICT_NEGATIVE_TERMS = {
     "bad",
     "broken",
     "confusing",
@@ -27,11 +27,8 @@ NEGATIVE_TERMS = {
     "wrong",
     "same issue",
     "不对",
-    "不好",
     "不好唱",
     "不好用",
-    "不会",
-    "不能",
     "不自然",
     "不押韵",
     "卡住",
@@ -49,6 +46,37 @@ NEGATIVE_TERMS = {
     "空了",
     "怪",
     "还在",
+    "错",
+}
+
+CONTEXTUAL_NEGATIVE_TERMS = {
+    "不好",
+    "不会",
+    "不能",
+}
+
+COMPLAINT_CONTEXT_TERMS = {
+    "accuracy",
+    "agent",
+    "api",
+    "bug",
+    "error",
+    "fail",
+    "failed",
+    "latency",
+    "tool",
+    "wrong",
+    "不行",
+    "不能用",
+    "你",
+    "功能",
+    "又",
+    "咋",
+    "怎么",
+    "没",
+    "没有",
+    "还是",
+    "还",
     "错",
 }
 
@@ -158,9 +186,7 @@ def _message_from_dict(row: dict[str, Any]) -> Message:
 
 def classify_message(message: Message) -> dict[str, Any]:
     lowered = message.text.lower()
-    negative_hits = sorted(
-        term for term in NEGATIVE_TERMS if term in lowered or term in message.text
-    )
+    negative_hits = _negative_hits(message.text, lowered)
     intents = [
         name
         for name, terms in INTENT_PATTERNS.items()
@@ -171,10 +197,17 @@ def classify_message(message: Message) -> dict[str, Any]:
             r"\b(again|already|same issue|still (wrong|broken|there|failing|not|bad))\b",
             lowered,
         )
-        or any(term in message.text for term in ("还在", "又", "还是", "没有改", "没更新"))
+        or any(
+            term in message.text
+            for term in ("还在", "还是没", "还是不", "又没", "又不", "没有改", "没更新")
+        )
     )
     unresolved = message.resolved is False
-    score = len(negative_hits) + len(intents) * 0.5 + repeated_question + unresolved
+    base_signal = len(negative_hits) + repeated_question + unresolved
+    process_request = "iterate_until_clean" in intents
+    score = 0.0
+    if base_signal or process_request:
+        score = base_signal + len(intents) * 0.5
     return {
         "session_id": message.session_id,
         "role": message.role,
@@ -186,6 +219,13 @@ def classify_message(message: Message) -> dict[str, Any]:
         "unresolved": unresolved,
         "dissatisfaction_score": round(score, 2),
     }
+
+
+def _negative_hits(text: str, lowered: str) -> list[str]:
+    hits = {term for term in STRICT_NEGATIVE_TERMS if term in lowered or term in text}
+    if any(term in lowered or term in text for term in COMPLAINT_CONTEXT_TERMS):
+        hits.update(term for term in CONTEXTUAL_NEGATIVE_TERMS if term in lowered or term in text)
+    return sorted(hits)
 
 
 def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[str, Any]:
