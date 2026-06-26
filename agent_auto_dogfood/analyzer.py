@@ -368,6 +368,60 @@ def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[
     }
 
 
+def render_markdown(report: dict[str, Any], *, max_evidence_chars: int = 180) -> str:
+    """Render a human-readable todo report without dumping full raw traces."""
+    lines = [
+        "# Agent Dogfood Todos",
+        "",
+        f"- Total messages: {report.get('total_messages', 0)}",
+        f"- Dissatisfied messages: {report.get('dissatisfied_messages', 0)}",
+        f"- Action items: {len(report.get('action_items', []))}",
+        "",
+    ]
+    items = report.get("action_items", [])
+    if not items:
+        lines.append("No action items above the configured score threshold.")
+        return "\n".join(lines) + "\n"
+
+    for index, item in enumerate(items, start=1):
+        lines.extend(
+            [
+                f"## {index}. {item['intent']} ({item['priority']})",
+                "",
+                f"- Affected sessions: {item['affected_sessions']}",
+                f"- Dissatisfaction total: {item['dissatisfaction_total']}",
+                f"- Recommended action: {item['recommended_action']}",
+            ]
+        )
+        terms = item.get("top_negative_terms") or []
+        if terms:
+            lines.append(f"- Top negative terms: {', '.join(terms)}")
+        evidence = item.get("evidence") or []
+        if evidence:
+            lines.append("- Evidence:")
+            for sample in evidence:
+                session = _markdown_inline(str(sample.get("session_id", "unknown")))
+                ts = _markdown_inline(str(sample.get("ts") or ""))
+                text = _truncate_evidence(str(sample.get("text") or ""), max_evidence_chars)
+                prefix = f"  - `{session}`"
+                if ts:
+                    prefix += f" `{ts}`"
+                lines.append(f"{prefix}: {text}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _truncate_evidence(text: str, limit: int) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) > limit:
+        normalized = normalized[: max(0, limit - 1)].rstrip() + "..."
+    return _markdown_inline(normalized)
+
+
+def _markdown_inline(text: str) -> str:
+    return text.replace("|", "\\|").replace("`", "'")
+
+
 def _priority(items: list[dict[str, Any]]) -> str:
     total = sum(item["dissatisfaction_score"] for item in items)
     if total >= 8 or len(items) >= 5:

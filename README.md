@@ -36,6 +36,7 @@ python -m pip install -e '.[dev]'
 ```bash
 agent-auto-dogfood examples/traces.jsonl
 agent-auto-dogfood examples/traces.jsonl --out out/todos.json
+agent-auto-dogfood examples/traces.jsonl --format markdown --out out/todos.md
 ```
 
 Example output:
@@ -74,6 +75,9 @@ CSV is also supported with columns such as `session_id,role,text,resolved,ts`.
 - affected sessions
 - recommended product fix
 - timestamp/session evidence
+
+Use JSON for automation and Markdown for daily or weekly product review. Markdown evidence is
+truncated so the report stays readable; keep the original trace file local for deeper debugging.
 
 ## What To Build Next
 

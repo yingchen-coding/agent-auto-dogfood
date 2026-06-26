@@ -1,4 +1,14 @@
-from agent_auto_dogfood.analyzer import Message, build_action_items, classify_message, load_messages
+import json
+import subprocess
+import sys
+
+from agent_auto_dogfood.analyzer import (
+    Message,
+    build_action_items,
+    classify_message,
+    load_messages,
+    render_markdown,
+)
 
 
 def test_trace_messages_become_prioritized_action_items():
@@ -327,3 +337,46 @@ def test_already_shared_context_is_not_repeated_failure():
     )
     assert item["repeated_question"] is False
     assert item["dissatisfaction_score"] == 0
+
+
+def test_markdown_report_truncates_evidence():
+    report = build_action_items(
+        [
+            Message(
+                session_id="s1",
+                role="user",
+                text="wrong " + ("very long detail " * 30),
+                resolved=False,
+            )
+        ]
+    )
+    markdown = render_markdown(report, max_evidence_chars=80)
+    assert "# Agent Dogfood Todos" in markdown
+    assert "## 1. accuracy" in markdown
+    assert "Recommended action" in markdown
+    assert "very long detail very long detail" in markdown
+    assert len(markdown) < 1200
+
+
+def test_cli_can_emit_markdown(tmp_path):
+    trace = tmp_path / "traces.jsonl"
+    trace.write_text(
+        json.dumps(
+            {
+                "session_id": "s1",
+                "role": "user",
+                "text": "export failed again and the pdf download is broken",
+                "resolved": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "agent_auto_dogfood", str(trace), "--format", "markdown"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "# Agent Dogfood Todos" in result.stdout
+    assert "export" in result.stdout
