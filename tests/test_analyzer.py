@@ -7,6 +7,7 @@ from agent_auto_dogfood.analyzer import (
     build_action_items,
     classify_message,
     load_messages,
+    redact_text,
     render_markdown,
 )
 
@@ -356,6 +357,49 @@ def test_markdown_report_truncates_evidence():
     assert "Recommended action" in markdown
     assert "very long detail very long detail" in markdown
     assert len(markdown) < 1200
+
+
+def test_reports_redact_sensitive_evidence_by_default():
+    report = build_action_items(
+        [
+            Message(
+                session_id="sensitive",
+                role="user",
+                text=(
+                    "export failed for ying@example.com with token=abc123secret "
+                    "and phone 415-555-1212"
+                ),
+                resolved=False,
+            )
+        ]
+    )
+    text = report["action_items"][0]["evidence"][0]["text"]
+    assert "ying@example.com" not in text
+    assert "abc123secret" not in text
+    assert "415-555-1212" not in text
+    assert "[REDACTED_EMAIL]" in text
+    assert "[REDACTED_SECRET]" in text
+    assert "[REDACTED_PHONE]" in text
+
+
+def test_raw_evidence_can_be_requested_explicitly():
+    report = build_action_items(
+        [
+            Message(
+                session_id="sensitive",
+                role="user",
+                text="export failed for ying@example.com",
+                resolved=False,
+            )
+        ],
+        redact=False,
+    )
+    assert "ying@example.com" in report["action_items"][0]["evidence"][0]["text"]
+
+
+def test_redact_text_covers_github_style_tokens():
+    token = "gh" + "p_" + ("x" * 24)
+    assert redact_text(f"tool failed with {token}") == "tool failed with [REDACTED_TOKEN]"
 
 
 def test_cli_can_emit_markdown(tmp_path):

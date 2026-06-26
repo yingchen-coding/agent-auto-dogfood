@@ -15,9 +15,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--min-score", type=float, default=1.0)
     parser.add_argument("--format", choices=["json", "markdown"], default="json")
+    parser.add_argument(
+        "--raw-evidence",
+        action="store_true",
+        help="include unredacted evidence text; default redacts common secrets and identifiers",
+    )
     args = parser.parse_args(argv)
 
-    report = build_action_items(load_messages(args.trace_file), min_score=args.min_score)
+    report = build_action_items(
+        load_messages(args.trace_file),
+        min_score=args.min_score,
+        redact=not args.raw_evidence,
+    )
     if args.format == "markdown":
         content = render_markdown(report)
     else:

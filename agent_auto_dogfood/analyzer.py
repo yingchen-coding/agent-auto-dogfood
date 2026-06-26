@@ -192,6 +192,16 @@ INTENT_PATTERNS = {
     ),
 }
 
+SECRET_PATTERNS = [
+    (re.compile(r"(?i)\b(?:sk|pk|ghp|gho|github_pat)_[A-Za-z0-9_]{12,}\b"), "[REDACTED_TOKEN]"),
+    (
+        re.compile(r"(?i)\b(?:api[_-]?key|token|password|secret)\s*[:=]\s*[^,\s]+"),
+        "[REDACTED_SECRET]",
+    ),
+    (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "[REDACTED_EMAIL]"),
+    (re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"), "[REDACTED_PHONE]"),
+]
+
 
 @dataclass(frozen=True)
 class Message:
@@ -327,7 +337,12 @@ def _looks_like_task_prompt(text: str, lowered: str) -> bool:
     )
 
 
-def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[str, Any]:
+def build_action_items(
+    messages: list[Message],
+    min_score: float = 1.0,
+    *,
+    redact: bool = True,
+) -> dict[str, Any]:
     classified = [classify_message(message) for message in messages if message.role != "assistant"]
     pain = [item for item in classified if item["dissatisfaction_score"] >= min_score]
     buckets: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -355,7 +370,7 @@ def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[
                     {
                         "session_id": item["session_id"],
                         "ts": item["ts"],
-                        "text": item["text"],
+                        "text": redact_text(item["text"]) if redact else item["text"],
                     }
                     for item in examples
                 ],
@@ -366,6 +381,14 @@ def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[
         "dissatisfied_messages": len(pain),
         "action_items": action_items,
     }
+
+
+def redact_text(text: str) -> str:
+    """Redact common local identifiers before reports leave the trace store."""
+    redacted = text
+    for pattern, replacement in SECRET_PATTERNS:
+        redacted = pattern.sub(replacement, redacted)
+    return redacted
 
 
 def render_markdown(report: dict[str, Any], *, max_evidence_chars: int = 180) -> str:

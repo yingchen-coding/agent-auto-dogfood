@@ -37,6 +37,7 @@ python -m pip install -e '.[dev]'
 agent-auto-dogfood examples/traces.jsonl
 agent-auto-dogfood examples/traces.jsonl --out out/todos.json
 agent-auto-dogfood examples/traces.jsonl --format markdown --out out/todos.md
+agent-auto-dogfood examples/traces.jsonl --raw-evidence --out out/internal-debug.json
 ```
 
 Example output:
@@ -78,6 +79,10 @@ CSV is also supported with columns such as `session_id,role,text,resolved,ts`.
 
 Use JSON for automation and Markdown for daily or weekly product review. Markdown evidence is
 truncated so the report stays readable; keep the original trace file local for deeper debugging.
+
+Evidence text is redacted by default before it appears in JSON or Markdown reports. Common tokens,
+`key=value` secrets, email addresses, and phone numbers are replaced with placeholders. Use
+`--raw-evidence` only for local debugging when the output will stay private.
 
 ## What To Build Next
 
