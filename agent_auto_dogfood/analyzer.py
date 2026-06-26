@@ -128,6 +128,68 @@ INTENT_PATTERNS = {
         "continue until",
         "run it again",
     ),
+    "product_recommendation_quality": (
+        "不好用",
+        "掉灰",
+        "点不着",
+        "产品",
+        "recommendation",
+        "recommended",
+    ),
+    "advice_plan_quality": (
+        "方案",
+        "计划",
+        "怎么安排",
+        "为啥不能",
+        "make sense",
+        "does this make sense",
+        "plan",
+        "schedule",
+    ),
+    "finance_analysis_quality": (
+        "开盘",
+        "价格",
+        "亏",
+        "涨",
+        "portfolio",
+        "stock",
+        "position",
+        "market",
+        "ticker",
+        "missing ticker",
+        "没有mu",
+    ),
+    "source_verification": (
+        "上网查",
+        "查一下",
+        "source",
+        "verify",
+        "look up",
+        "search web",
+    ),
+    "review_validation": (
+        "vet",
+        "review again",
+        "validate again",
+        "再检查",
+        "重新检查",
+    ),
+    "execution_quality": (
+        "质量差",
+        "继续改",
+        "一直停",
+        "停干",
+        "只干",
+        "keep going",
+        "keep improving",
+    ),
+    "failure_mode_quality": (
+        "failure mode",
+        "won't fail",
+        "no use",
+        "disable notification",
+        "that's your solution",
+    ),
 }
 
 
@@ -186,15 +248,16 @@ def _message_from_dict(row: dict[str, Any]) -> Message:
 
 def classify_message(message: Message) -> dict[str, Any]:
     lowered = message.text.lower()
-    negative_hits = _negative_hits(message.text, lowered)
+    task_prompt = _looks_like_task_prompt(message.text, lowered)
+    negative_hits = [] if task_prompt else _negative_hits(message.text, lowered)
     intents = [
         name
         for name, terms in INTENT_PATTERNS.items()
-        if any(term in lowered or term in message.text for term in terms)
+        if any(_contains_term(message.text, lowered, term) for term in terms)
     ]
     repeated_question = bool(
         re.search(
-            r"\b(again|already|same issue|still (wrong|broken|there|failing|not|bad))\b",
+            r"\b(same issue|still (wrong|broken|there|failing|not|bad))\b",
             lowered,
         )
         or any(
@@ -208,6 +271,10 @@ def classify_message(message: Message) -> dict[str, Any]:
     score = 0.0
     if base_signal or process_request:
         score = base_signal + len(intents) * 0.5
+    if process_request and score < 1.0:
+        score = 1.0
+    if task_prompt:
+        score = 0.0
     return {
         "session_id": message.session_id,
         "role": message.role,
@@ -222,10 +289,42 @@ def classify_message(message: Message) -> dict[str, Any]:
 
 
 def _negative_hits(text: str, lowered: str) -> list[str]:
-    hits = {term for term in STRICT_NEGATIVE_TERMS if term in lowered or term in text}
-    if any(term in lowered or term in text for term in COMPLAINT_CONTEXT_TERMS):
-        hits.update(term for term in CONTEXTUAL_NEGATIVE_TERMS if term in lowered or term in text)
+    hits = {term for term in STRICT_NEGATIVE_TERMS if _contains_term(text, lowered, term)}
+    if any(_contains_term(text, lowered, term) for term in COMPLAINT_CONTEXT_TERMS):
+        hits.update(
+            term for term in CONTEXTUAL_NEGATIVE_TERMS if _contains_term(text, lowered, term)
+        )
     return sorted(hits)
+
+
+def _contains_term(text: str, lowered: str, term: str) -> bool:
+    lowered_term = term.lower()
+    if lowered_term.isascii():
+        pattern = rf"(?<![a-z0-9]){re.escape(lowered_term)}(?![a-z0-9])"
+        return re.search(pattern, lowered) is not None
+    return lowered_term in lowered or term in text
+
+
+def _looks_like_task_prompt(text: str, lowered: str) -> bool:
+    task_markers = (
+        "you are reviewing",
+        "find correctness bugs",
+        "rank by severity",
+        "here is the core loop",
+        "domain-agnostic",
+    )
+    complaint_markers = (
+        "what the heck",
+        "why not",
+        "still wrong",
+        "still broken",
+        "质量差",
+        "你为什么",
+        "你怎么",
+    )
+    return any(marker in lowered for marker in task_markers) and not any(
+        marker in lowered or marker in text for marker in complaint_markers
+    )
 
 
 def build_action_items(messages: list[Message], min_score: float = 1.0) -> dict[str, Any]:
@@ -310,6 +409,34 @@ def _recommended_action(intent: str) -> str:
         "iterate_until_clean": (
             "Treat fix-all requests as a loop: inspect, patch, run validation, inspect the new "
             "output, and repeat until clean or concretely blocked."
+        ),
+        "product_recommendation_quality": (
+            "When product advice is challenged, verify the exact product behavior and user "
+            "constraints before recommending alternatives."
+        ),
+        "advice_plan_quality": (
+            "Expose the assumptions behind a plan, then re-check the plan against the user's "
+            "constraints instead of defending the first answer."
+        ),
+        "finance_analysis_quality": (
+            "Use the user's actual fill prices, lots, and timestamps before judging P&L or "
+            "portfolio performance."
+        ),
+        "source_verification": (
+            "When the user asks why sources were not checked, verify current external facts "
+            "before answering and cite the source boundary."
+        ),
+        "review_validation": (
+            "Treat review-again requests as a validation pass: inspect the artifact, report "
+            "specific findings, and fix concrete defects found."
+        ),
+        "execution_quality": (
+            "When the user says work quality is low or progress keeps stopping, continue the "
+            "implementation loop and validate concrete improvements before responding."
+        ),
+        "failure_mode_quality": (
+            "Do not hide failures by disabling signals; preserve observability and fix the "
+            "underlying failure mode."
         ),
         "unknown": "Review examples manually and add a new intent classifier pattern.",
     }.get(intent, "Review examples and convert repeated failure into a product fix.")

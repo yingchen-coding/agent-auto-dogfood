@@ -163,3 +163,167 @@ def test_unfixed_chinese_repeated_failure_still_counts():
     )
     assert item["repeated_question"] is True
     assert item["dissatisfaction_score"] >= 2
+
+
+def test_product_recommendation_complaint_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="shopping",
+                role="user",
+                text="之前买的这个产品非常不好用，根本老是掉灰，而且又点不着。",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "product_recommendation_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_advice_plan_complaint_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="planning",
+                role="user",
+                text="为啥不能每天换？是因为你这个方案不好吗？",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "advice_plan_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_finance_assumption_complaint_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="finance",
+                role="user",
+                text="你又不是开盘买的，凭什么用开盘的价格？",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "finance_analysis_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_failover_code_review_prompt_does_not_match_fail():
+    item = classify_message(
+        Message(
+            session_id="code-review",
+            role="user",
+            text=(
+                "You are reviewing the failover logic of a quota-aware model router. "
+                "The plan.order list chooses provider names by task."
+            ),
+        )
+    )
+    assert "fail" not in item["negative_terms"]
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_long_code_review_task_prompt_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="code-review",
+            role="user",
+            text=(
+                "You are reviewing the failover logic of a quota-aware model router. "
+                "Find correctness bugs in this prediction-eval scorer. "
+                "Rank by severity and be concrete."
+            ),
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_web_lookup_complaint_is_source_verification():
+    report = build_action_items(
+        [
+            Message(
+                session_id="job",
+                role="user",
+                text="你为什么不能够上网查一下，而且datavace有什么关系。",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "source_verification" in intents
+    assert "unknown" not in intents
+
+
+def test_missing_ticker_complaint_is_finance_quality():
+    report = build_action_items(
+        [
+            Message(
+                session_id="stocks",
+                role="user",
+                text="还是没有MU？",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "finance_analysis_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_vet_again_is_review_validation_not_repeated_failure():
+    item = classify_message(
+        Message(
+            session_id="review",
+            role="user",
+            text="vet again",
+        )
+    )
+    assert "review_validation" in item["intents"]
+    assert item["repeated_question"] is False
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_execution_quality_complaint_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="quality",
+                role="user",
+                text="你每天给我干两分钟是什么意思？质量差就是差，改的不好就是不好，能不能继续改？一直停干什么？",
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "execution_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_failure_mode_complaint_is_not_unknown():
+    report = build_action_items(
+        [
+            Message(
+                session_id="robustness",
+                role="user",
+                text=(
+                    "really? that's your solution? disable notification so it won't fail. "
+                    "the only one no failure mode is no use"
+                ),
+            )
+        ]
+    )
+    intents = {item["intent"]: item for item in report["action_items"]}
+    assert "failure_mode_quality" in intents
+    assert "unknown" not in intents
+
+
+def test_already_shared_context_is_not_repeated_failure():
+    item = classify_message(
+        Message(
+            session_id="offer",
+            role="user",
+            text="google offer, target already shared one week ago, today is follow up call",
+        )
+    )
+    assert item["repeated_question"] is False
+    assert item["dissatisfaction_score"] == 0
