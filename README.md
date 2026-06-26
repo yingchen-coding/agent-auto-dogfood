@@ -4,24 +4,24 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Agent Auto Dogfood turns AI-agent traces into product todos with evidence.
+Your users already told you what to fix. It is buried in traces.
 
-The premise is simple: if an agent frustrates users, repeats a bad answer, fails a tool call, or
-cannot complete an export/login/accuracy workflow, that trace should become a concrete todo with
-evidence. The agent system should dogfood itself by reading its own traces and producing the next
-fix list.
+Agent Auto Dogfood reads agent conversations, finds frustration, repeated failures, bad tool paths,
+and vague "still broken" moments, then turns them into ranked product todos with evidence. No
+dashboard archaeology. No sentiment theater. Just the next fixes your agent earned from real usage.
 
 ## Star This If
 
-- You run agents and need to know why users are unhappy without reading every trace.
-- You want a deterministic, local alternative to dashboard screenshots and anecdotal bug reports.
-- You want every product todo tied to sessions, examples, and a proposed fix.
+- You run agents and want yesterday's failures turned into today's fix list.
+- You need deterministic local analysis instead of screenshot-driven product meetings.
+- You want every todo tied to sessions, examples, and a concrete repair path.
 
 ## What It Does
 
 - Reads JSONL or CSV agent traces.
-- Detects user dissatisfaction and repeated failure signals.
+- Detects user dissatisfaction, repeated failure signals, and unresolved workflows.
 - Groups failures by intent such as export, login, accuracy, latency, handoff, and tool failure.
+- Separates real complaints from neutral requests, pasted context, and routine review text.
 - Produces ranked todos with affected sessions and example evidence.
 - Keeps the output deterministic and local.
 
