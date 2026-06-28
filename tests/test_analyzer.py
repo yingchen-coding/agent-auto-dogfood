@@ -10,6 +10,7 @@ from agent_auto_dogfood.analyzer import (
     redact_text,
     render_markdown,
 )
+from agent_auto_dogfood.harness import build_harness_plan, render_harness_markdown
 
 
 def test_trace_messages_become_prioritized_action_items():
@@ -360,41 +361,41 @@ def test_markdown_report_truncates_evidence():
 
 
 def test_reports_redact_sensitive_evidence_by_default():
+    email = "user" + "@" + "example.invalid"
+    phone = "415" + "-555" + "-1212"
     report = build_action_items(
         [
             Message(
                 session_id="sensitive",
                 role="user",
-                text=(
-                    "export failed for ying@example.com with token=abc123secret "
-                    "and phone 415-555-1212"
-                ),
+                text=f"export failed for {email} with token=abc123secret and phone {phone}",
                 resolved=False,
             )
         ]
     )
     text = report["action_items"][0]["evidence"][0]["text"]
-    assert "ying@example.com" not in text
+    assert email not in text
     assert "abc123secret" not in text
-    assert "415-555-1212" not in text
+    assert phone not in text
     assert "[REDACTED_EMAIL]" in text
     assert "[REDACTED_SECRET]" in text
     assert "[REDACTED_PHONE]" in text
 
 
 def test_raw_evidence_can_be_requested_explicitly():
+    email = "user" + "@" + "example.invalid"
     report = build_action_items(
         [
             Message(
                 session_id="sensitive",
                 role="user",
-                text="export failed for ying@example.com",
+                text=f"export failed for {email}",
                 resolved=False,
             )
         ],
         redact=False,
     )
-    assert "ying@example.com" in report["action_items"][0]["evidence"][0]["text"]
+    assert email in report["action_items"][0]["evidence"][0]["text"]
 
 
 def test_redact_text_covers_github_style_tokens():
@@ -424,3 +425,69 @@ def test_cli_can_emit_markdown(tmp_path):
     )
     assert "# Agent Dogfood Todos" in result.stdout
     assert "export" in result.stdout
+
+
+def test_harness_plan_turns_todos_into_experiments():
+    report = build_action_items(
+        [
+            Message(
+                session_id="s1",
+                role="user",
+                text="Still wrong. The answer cites a file that does not exist.",
+                resolved=False,
+            )
+        ]
+    )
+    plan = build_harness_plan(report)
+    experiment = plan["experiments"][0]
+    assert experiment["id"].startswith("exp-001-accuracy")
+    assert "grounded-answer fixture" in experiment["regression_check"]
+    assert experiment["release_gate"].startswith(("Require", "Block"))
+
+
+def test_harness_markdown_is_readable():
+    markdown = render_harness_markdown(
+        {
+            "total_messages": 1,
+            "dissatisfied_messages": 1,
+            "experiments": [
+                {
+                    "id": "exp-001-export",
+                    "priority": "high",
+                    "intent": "export",
+                    "hypothesis": "If export works, complaints drop.",
+                    "change": "Fix export.",
+                    "regression_check": "Run export fixture.",
+                    "release_gate": "Block release.",
+                    "evidence_sessions": ["s1"],
+                }
+            ],
+        }
+    )
+    assert "# Agent Harness Plan" in markdown
+    assert "exp-001-export" in markdown
+    assert "Evidence sessions: s1" in markdown
+
+
+def test_cli_can_emit_harness_markdown(tmp_path):
+    trace = tmp_path / "traces.jsonl"
+    trace.write_text(
+        json.dumps(
+            {
+                "session_id": "s1",
+                "role": "user",
+                "text": "export failed again and the pdf download is broken",
+                "resolved": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "agent_auto_dogfood", str(trace), "--format", "harness-markdown"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert "# Agent Harness Plan" in result.stdout
+    assert "Regression check" in result.stdout

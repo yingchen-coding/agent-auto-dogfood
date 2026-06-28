@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from .analyzer import build_action_items, load_messages, render_markdown
+from .harness import build_harness_plan, render_harness_markdown
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -14,7 +15,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("trace_file", type=Path)
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--min-score", type=float, default=1.0)
-    parser.add_argument("--format", choices=["json", "markdown"], default="json")
+    parser.add_argument(
+        "--format",
+        choices=["json", "markdown", "harness-json", "harness-markdown"],
+        default="json",
+    )
     parser.add_argument(
         "--raw-evidence",
         action="store_true",
@@ -29,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.format == "markdown":
         content = render_markdown(report)
+    elif args.format == "harness-json":
+        content = json.dumps(build_harness_plan(report), ensure_ascii=False, indent=2)
+    elif args.format == "harness-markdown":
+        content = render_harness_markdown(build_harness_plan(report))
     else:
         content = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:

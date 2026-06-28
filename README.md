@@ -37,6 +37,7 @@ python -m pip install -e '.[dev]'
 agent-auto-dogfood examples/traces.jsonl
 agent-auto-dogfood examples/traces.jsonl --out out/todos.json
 agent-auto-dogfood examples/traces.jsonl --format markdown --out out/todos.md
+agent-auto-dogfood examples/traces.jsonl --format harness-markdown --out out/harness.md
 agent-auto-dogfood examples/traces.jsonl --raw-evidence --out out/internal-debug.json
 ```
 
@@ -86,11 +87,26 @@ Evidence text is redacted by default before it appears in JSON or Markdown repor
 
 ## What To Build Next
 
+- Connect harness plans to issue trackers and CI regression jobs.
 - LangSmith, Langfuse, OpenTelemetry, and custom trace adapters.
 - LLM-assisted intent clustering.
 - Weekly todo reports by release.
 - PRD generation from repeated todos.
 - Regression checks after fixes ship.
+
+## Harness Plans
+
+Use `--format harness-json` or `--format harness-markdown` when you want the todo list converted
+into an implementation loop:
+
+- hypothesis
+- concrete change
+- regression check
+- release gate
+- evidence sessions
+
+This is the practical Agent Harness layer: every repeated user complaint becomes a testable
+experiment, not just a dashboard row.
 
 ## Boundaries
 
