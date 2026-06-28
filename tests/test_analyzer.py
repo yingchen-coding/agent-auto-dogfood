@@ -11,6 +11,7 @@ from agent_auto_dogfood.analyzer import (
     render_markdown,
 )
 from agent_auto_dogfood.harness import build_harness_plan, render_harness_markdown
+from agent_auto_dogfood.metrics import build_eval_metrics, render_metrics_markdown
 
 
 def test_trace_messages_become_prioritized_action_items():
@@ -491,3 +492,86 @@ def test_cli_can_emit_harness_markdown(tmp_path):
     )
     assert "# Agent Harness Plan" in result.stdout
     assert "Regression check" in result.stdout
+
+
+def test_eval_metrics_measure_completion_and_evidence():
+    messages = [
+        Message(session_id="s1", role="user", text="export failed again", resolved=False),
+        Message(session_id="s2", role="user", text="all good now", resolved=True),
+        Message(session_id="s1", role="user", text="still broken, same issue", resolved=False),
+    ]
+    report = build_action_items(messages)
+    metrics = build_eval_metrics(messages, report)
+    assert metrics["sessions"] == 2
+    assert metrics["resolved_sessions"] == 1
+    assert metrics["unresolved_sessions"] == 1
+    assert metrics["completion_proxy"] == 0.5
+    assert metrics["repeated_failure_rate"] > 0
+    assert metrics["evidence_coverage"] == 1.0
+    assert metrics["top_intents"][0]["evidence_samples"] >= 1
+
+
+def test_metrics_markdown_is_readable():
+    markdown = render_metrics_markdown(
+        {
+            "total_messages": 3,
+            "user_messages": 3,
+            "sessions": 2,
+            "completion_proxy": 0.5,
+            "unresolved_message_rate": 0.67,
+            "dissatisfied_message_rate": 0.67,
+            "repeated_failure_rate": 0.33,
+            "evidence_coverage": 1.0,
+            "action_items": 1,
+            "high_priority_items": 1,
+            "top_intents": [
+                {
+                    "intent": "export",
+                    "priority": "high",
+                    "affected_sessions": 1,
+                    "dissatisfaction_total": 4.0,
+                    "evidence_samples": 2,
+                }
+            ],
+        }
+    )
+    assert "# Agent Eval Metrics" in markdown
+    assert "Completion proxy: 50.0%" in markdown
+    assert "export (high)" in markdown
+
+
+def test_cli_can_emit_metrics_json(tmp_path):
+    trace = tmp_path / "traces.jsonl"
+    trace.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "session_id": "s1",
+                        "role": "user",
+                        "text": "export failed again and the pdf download is broken",
+                        "resolved": False,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "session_id": "s2",
+                        "role": "user",
+                        "text": "done, this is resolved",
+                        "resolved": True,
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "agent_auto_dogfood", str(trace), "--format", "metrics-json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    assert payload["sessions"] == 2
+    assert payload["completion_proxy"] == 0.5

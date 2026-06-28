@@ -38,6 +38,7 @@ agent-auto-dogfood examples/traces.jsonl
 agent-auto-dogfood examples/traces.jsonl --out out/todos.json
 agent-auto-dogfood examples/traces.jsonl --format markdown --out out/todos.md
 agent-auto-dogfood examples/traces.jsonl --format harness-markdown --out out/harness.md
+agent-auto-dogfood examples/traces.jsonl --format metrics-markdown --out out/metrics.md
 agent-auto-dogfood examples/traces.jsonl --raw-evidence --out out/internal-debug.json
 ```
 
@@ -84,6 +85,22 @@ truncated so the report stays readable; keep the original trace file local for d
 Evidence text is redacted by default before it appears in JSON or Markdown reports. Common tokens,
 `key=value` secrets, email addresses, and phone numbers are replaced with placeholders. Use
 `--raw-evidence` only for local debugging when the output will stay private.
+
+## Eval Metrics
+
+Use `--format metrics-json` or `--format metrics-markdown` when you need to answer whether an
+agent is actually getting better:
+
+- completion proxy from resolved sessions
+- unresolved message rate
+- dissatisfied message rate
+- repeated failure rate
+- evidence coverage for generated action items
+- high-priority intent counts
+
+These are local, deterministic product metrics. They are not a vendor benchmark and they do not
+claim that usage growth equals task success. Pair them with the harness plan when you want every
+metric to turn into a regression check.
 
 ## What To Build Next
 

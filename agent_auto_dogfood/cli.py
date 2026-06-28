@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .analyzer import build_action_items, load_messages, render_markdown
 from .harness import build_harness_plan, render_harness_markdown
+from .metrics import build_eval_metrics, render_metrics_markdown
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -17,7 +18,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-score", type=float, default=1.0)
     parser.add_argument(
         "--format",
-        choices=["json", "markdown", "harness-json", "harness-markdown"],
+        choices=[
+            "json",
+            "markdown",
+            "harness-json",
+            "harness-markdown",
+            "metrics-json",
+            "metrics-markdown",
+        ],
         default="json",
     )
     parser.add_argument(
@@ -27,8 +35,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    messages = load_messages(args.trace_file)
     report = build_action_items(
-        load_messages(args.trace_file),
+        messages,
         min_score=args.min_score,
         redact=not args.raw_evidence,
     )
@@ -38,6 +47,10 @@ def main(argv: list[str] | None = None) -> int:
         content = json.dumps(build_harness_plan(report), ensure_ascii=False, indent=2)
     elif args.format == "harness-markdown":
         content = render_harness_markdown(build_harness_plan(report))
+    elif args.format == "metrics-json":
+        content = json.dumps(build_eval_metrics(messages, report), ensure_ascii=False, indent=2)
+    elif args.format == "metrics-markdown":
+        content = render_metrics_markdown(build_eval_metrics(messages, report))
     else:
         content = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:
