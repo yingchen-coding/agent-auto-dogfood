@@ -39,6 +39,7 @@ agent-auto-dogfood examples/traces.jsonl --out out/todos.json
 agent-auto-dogfood examples/traces.jsonl --format markdown --out out/todos.md
 agent-auto-dogfood examples/traces.jsonl --format harness-markdown --out out/harness.md
 agent-auto-dogfood examples/traces.jsonl --format metrics-markdown --out out/metrics.md
+agent-auto-dogfood examples/traces.jsonl --format memory-markdown --out out/memory.md
 agent-auto-dogfood examples/traces.jsonl --raw-evidence --out out/internal-debug.json
 ```
 
@@ -101,6 +102,21 @@ agent is actually getting better:
 These are local, deterministic product metrics. They are not a vendor benchmark and they do not
 claim that usage growth equals task success. Pair them with the harness plan when you want every
 metric to turn into a regression check.
+
+## Memory Benchmark
+
+Use `--format memory-json` or `--format memory-markdown` to catch context and memory failures that
+normal sentiment reports miss:
+
+- memory read requests
+- memory update requests
+- memory-miss complaints such as "I already told you"
+- compaction and long-context pressure
+- repeated-session pressure
+- redacted evidence for regression fixtures
+
+This tests whether an agent preserves working context across long sessions. It does not claim to
+benchmark model architecture.
 
 ## What To Build Next
 

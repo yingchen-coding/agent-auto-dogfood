@@ -11,6 +11,7 @@ from agent_auto_dogfood.analyzer import (
     render_markdown,
 )
 from agent_auto_dogfood.harness import build_harness_plan, render_harness_markdown
+from agent_auto_dogfood.memory import build_memory_benchmark, render_memory_markdown
 from agent_auto_dogfood.metrics import build_eval_metrics, render_metrics_markdown
 
 
@@ -575,3 +576,59 @@ def test_cli_can_emit_metrics_json(tmp_path):
     payload = json.loads(result.stdout)
     assert payload["sessions"] == 2
     assert payload["completion_proxy"] == 0.5
+
+
+def test_memory_benchmark_scores_memory_misses_and_compaction():
+    messages = [
+        Message(session_id="s1", role="user", text="read memory and continue"),
+        Message(session_id="s1", role="user", text="我说了大厅需要空调，你忘了"),
+        Message(session_id="s2", role="user", text="run /compact when needed for long context"),
+    ]
+    report = build_memory_benchmark(messages)
+    assert report["memory_read_requests"] == 1
+    assert report["memory_miss_complaints"] == 1
+    assert report["context_pressure"] == 1
+    assert report["memory_risk_score"] >= 7
+    assert report["recommendation"].startswith("Add a regression fixture")
+
+
+def test_memory_markdown_redacts_evidence():
+    email = "user" + "@" + "example.invalid"
+    report = build_memory_benchmark(
+        [
+            Message(
+                session_id="sensitive",
+                role="user",
+                text=f"read memory, I said contact is {email}",
+            )
+        ]
+    )
+    markdown = render_memory_markdown(report)
+    assert "# Agent Memory Benchmark" in markdown
+    assert email not in markdown
+    assert "[REDACTED_EMAIL]" in markdown
+
+
+def test_cli_can_emit_memory_json(tmp_path):
+    trace = tmp_path / "traces.jsonl"
+    trace.write_text(
+        json.dumps(
+            {
+                "session_id": "s1",
+                "role": "user",
+                "text": "read memory, you forgot what I said",
+                "resolved": False,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "agent_auto_dogfood", str(trace), "--format", "memory-json"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    assert payload["memory_read_requests"] == 1
+    assert payload["memory_miss_complaints"] == 1

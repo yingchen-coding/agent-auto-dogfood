@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .analyzer import build_action_items, load_messages, render_markdown
 from .harness import build_harness_plan, render_harness_markdown
+from .memory import build_memory_benchmark, render_memory_markdown
 from .metrics import build_eval_metrics, render_metrics_markdown
 
 
@@ -25,6 +26,8 @@ def main(argv: list[str] | None = None) -> int:
             "harness-markdown",
             "metrics-json",
             "metrics-markdown",
+            "memory-json",
+            "memory-markdown",
         ],
         default="json",
     )
@@ -51,6 +54,16 @@ def main(argv: list[str] | None = None) -> int:
         content = json.dumps(build_eval_metrics(messages, report), ensure_ascii=False, indent=2)
     elif args.format == "metrics-markdown":
         content = render_metrics_markdown(build_eval_metrics(messages, report))
+    elif args.format == "memory-json":
+        content = json.dumps(
+            build_memory_benchmark(messages, redact=not args.raw_evidence),
+            ensure_ascii=False,
+            indent=2,
+        )
+    elif args.format == "memory-markdown":
+        content = render_memory_markdown(
+            build_memory_benchmark(messages, redact=not args.raw_evidence)
+        )
     else:
         content = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:
