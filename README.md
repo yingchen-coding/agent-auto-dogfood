@@ -147,3 +147,11 @@ experiment, not just a dashboard row.
 - This does not send traces to an external service.
 - This does not auto-create tickets yet; keep humans in the prioritization loop.
 
+## Local Review Gate
+
+```bash
+scripts/pr_review_check.sh
+```
+
+This runs compile checks, tests, Ruff when available, secret scanning, and commit-history
+attribution checks. GitHub runs the same gate through the `PR Review Gate` workflow.
