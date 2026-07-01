@@ -16,7 +16,6 @@ MEMORY_READ_TERMS = (
 )
 MEMORY_WRITE_TERMS = (
     "update memory",
-    "update memory",
     "checkpoint",
     "save as",
     "记下来",
