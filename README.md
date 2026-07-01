@@ -147,8 +147,3 @@ experiment, not just a dashboard row.
 - This does not send traces to an external service.
 - This does not auto-create tickets yet; keep humans in the prioritization loop.
 
-## Local Review
-
-```bash
-scripts/pr_review_check.sh
-```
