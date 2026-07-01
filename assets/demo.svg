@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="780" height="254" viewBox="0 0 780 254" role="img" aria-label="agent-auto-dogfood — turn agent chat logs into a fix list">
+  <rect width="780" height="254" rx="10" fill="#0d1117" stroke="#30363d"/>
+  <rect width="780" height="40" rx="10" fill="#161b22"/>
+  <rect y="30" width="780" height="10" fill="#161b22"/>
+  <circle cx="18" cy="20" r="6" fill="#ff5f56"/><circle cx="38" cy="20" r="6" fill="#ffbd2e"/><circle cx="58" cy="20" r="6" fill="#27c93f"/>
+  <text x="390" y="24" fill="#8b949e" font-family="monospace" font-size="12" text-anchor="middle">agent-auto-dogfood — turn agent chat logs into a fix list</text>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5">
+    <text x="22" y="58" fill="#e6edf3" xml:space="preserve">$ agent-auto-dogfood analyze ~/agent/transcripts</text><text x="22" y="80" fill="#3fb950" xml:space="preserve">  mined 741 messages  →  27 dissatisfaction signals</text><text x="22" y="124" fill="#f85149" xml:space="preserve">  #1  repeated-failure  &quot;still not fixed&quot; ×6   (evidence: 6 sessions)</text><text x="22" y="146" fill="#8b949e" xml:space="preserve">  #2  unresolved        tool errors ×4</text><text x="22" y="168" fill="#8b949e" xml:space="preserve">  #3  low evidence       claims without a check ×3</text><text x="22" y="212" fill="#3fb950" xml:space="preserve">  → prioritized, evidence-backed action items written</text>
+  </g>
+</svg>

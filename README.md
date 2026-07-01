@@ -4,6 +4,8 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+![agent-auto-dogfood — turn agent chat logs into a fix list](assets/demo.svg)
+
 Your users already told you what to fix. It is buried in traces.
 
 Agent Auto Dogfood reads agent conversations, finds frustration, repeated failures, bad tool paths,
