@@ -19,20 +19,20 @@ def build_eval_metrics(messages: list[Message], report: dict[str, Any]) -> dict[
     }
     repeated_failures = [item for item in classified if item["repeated_question"]]
     dissatisfied = [
-        item for item in classified if float(item.get("dissatisfaction_score", 0)) > 0
+        item for item in classified if _num(item.get("dissatisfaction_score", 0)) > 0
     ]
     action_items = report.get("action_items", [])
     action_count = len(action_items)
     evidence_backed = [
         item
         for item in action_items
-        if item.get("evidence") and int(item.get("affected_sessions") or 0) > 0
+        if item.get("evidence") and _int(item.get("affected_sessions")) > 0
     ]
     priority_counts = Counter(str(item.get("priority") or "unknown") for item in action_items)
     intent_rows = []
     for item in action_items:
-        affected_sessions = int(item.get("affected_sessions") or 0)
-        total = float(item.get("dissatisfaction_total") or 0)
+        affected_sessions = _int(item.get("affected_sessions"))
+        total = _num(item.get("dissatisfaction_total"))
         intent_rows.append(
             {
                 "intent": item.get("intent", "unknown"),
@@ -102,6 +102,23 @@ def render_metrics_markdown(metrics: dict[str, Any]) -> str:
             )
         )
     return "\n".join(lines) + "\n"
+
+
+def _num(value: Any) -> float:
+    """Coerce a report field to float, tolerating the non-numeric values a classifier-generated
+    JSON report can carry (a string, null, a truncated line). A single bad field must not crash the
+    whole metrics build."""
+    if value is None:
+        return 0.0
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return number if number == number and number not in (float("inf"), float("-inf")) else 0.0
+
+
+def _int(value: Any) -> int:
+    return int(_num(value))
 
 
 def _ratio(numerator: int, denominator: int) -> float:
