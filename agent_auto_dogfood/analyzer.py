@@ -215,7 +215,7 @@ class Message:
 def load_messages(path: str | Path) -> list[Message]:
     source = Path(path)
     if source.suffix.lower() == ".csv":
-        with source.open(newline="", encoding="utf-8") as handle:
+        with source.open(newline="", encoding="utf-8-sig") as handle:
             return [_message_from_dict(row) for row in csv.DictReader(handle)]
     messages = []
     with source.open(encoding="utf-8") as handle:

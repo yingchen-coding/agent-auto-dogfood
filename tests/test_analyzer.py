@@ -405,6 +405,16 @@ def test_redact_text_covers_github_style_tokens():
     assert redact_text(f"tool failed with {token}") == "tool failed with [REDACTED_TOKEN]"
 
 
+def test_load_messages_strips_utf8_bom_from_csv(tmp_path):
+    # Excel/Windows writes UTF-8 BOM; without utf-8-sig the first column header is mangled
+    p = tmp_path / "traces.csv"
+    p.write_bytes(b"\xef\xbb\xbfsession_id,role,text,resolved\ns1,user,export broke,false\n")
+    messages = load_messages(p)
+    assert len(messages) == 1
+    assert messages[0].session_id == "s1"
+    assert messages[0].text == "export broke"
+
+
 def test_cli_can_emit_markdown(tmp_path):
     trace = tmp_path / "traces.jsonl"
     trace.write_text(
