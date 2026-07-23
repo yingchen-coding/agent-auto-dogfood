@@ -258,6 +258,80 @@ def test_long_code_review_task_prompt_is_not_dissatisfaction():
     assert item["dissatisfaction_score"] == 0
 
 
+def test_creative_generation_prompt_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="creative",
+            role="user",
+            text=(
+                "You are a puzzle designer. Generate a room escape game.\n"
+                "## Hard requirements\n"
+                "Include a broken music box and verify the solution.\n"
+                "## Output format\nOutput only the puzzle."
+            ),
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_direct_you_are_complaint_is_not_treated_as_task_prompt():
+    item = classify_message(
+        Message(
+            session_id="complaint",
+            role="user",
+            text="You are a bad agent and this answer is wrong.",
+        )
+    )
+    assert "bad" in item["negative_terms"]
+    assert item["dissatisfaction_score"] > 0
+
+
+def test_neutral_chinese_request_with_agent_context_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="service-request",
+            role="user",
+            text=(
+                "整合。这个项目需要做现场 inspection。你先帮我确认你的证能不能被接受，"
+                "这版够清楚，也不会把填表说得太轻。"
+            ),
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_role_prefixed_transcript_payload_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="domain-task",
+            role="user",
+            text=(
+                "support agent. Summarize this customer transcript:\n"
+                + "Customer says the product is bad and cannot work in summer. " * 20
+            ),
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
+def test_long_evaluation_task_is_not_dissatisfaction():
+    item = classify_message(
+        Message(
+            session_id="evaluation",
+            role="user",
+            text=(
+                "The clean rater v3 should be done. Map its scores back, recompute the metrics, "
+                "and overwrite the broken-score column in the CSV."
+            ),
+        )
+    )
+    assert item["negative_terms"] == []
+    assert item["dissatisfaction_score"] == 0
+
+
 def test_web_lookup_complaint_is_source_verification():
     report = build_action_items(
         [

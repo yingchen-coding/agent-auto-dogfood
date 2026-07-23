@@ -57,22 +57,23 @@ CONTEXTUAL_NEGATIVE_TERMS = {
 
 COMPLAINT_CONTEXT_TERMS = {
     "accuracy",
-    "agent",
-    "api",
     "bug",
     "error",
     "fail",
     "failed",
     "latency",
-    "tool",
     "wrong",
     "不行",
     "不能用",
-    "你",
     "功能",
     "又",
     "咋",
     "怎么",
+    "为什么",
+    "为啥",
+    "质量差",
+    "继续改",
+    "一直停",
     "没",
     "没有",
     "还是",
@@ -300,10 +301,17 @@ def classify_message(message: Message) -> dict[str, Any]:
 
 def _negative_hits(text: str, lowered: str) -> list[str]:
     hits = {term for term in STRICT_NEGATIVE_TERMS if _contains_term(text, lowered, term)}
-    if any(_contains_term(text, lowered, term) for term in COMPLAINT_CONTEXT_TERMS):
-        hits.update(
-            term for term in CONTEXTUAL_NEGATIVE_TERMS if _contains_term(text, lowered, term)
-        )
+    for sentence in re.split(r"[\n。！？!?]+", text):
+        sentence_lowered = sentence.lower()
+        if any(
+            _contains_term(sentence, sentence_lowered, term)
+            for term in COMPLAINT_CONTEXT_TERMS
+        ):
+            hits.update(
+                term
+                for term in CONTEXTUAL_NEGATIVE_TERMS
+                if _contains_term(sentence, sentence_lowered, term)
+            )
     return sorted(hits)
 
 
@@ -317,8 +325,12 @@ def _contains_term(text: str, lowered: str, term: str) -> bool:
 
 def _looks_like_task_prompt(text: str, lowered: str) -> bool:
     task_markers = (
+        "you are a ",
         "you are reviewing",
         "find correctness bugs",
+        "## hard requirements",
+        "## output format",
+        "should be done. map ",
         "rank by severity",
         "here is the core loop",
         "domain-agnostic",
@@ -332,8 +344,20 @@ def _looks_like_task_prompt(text: str, lowered: str) -> bool:
         "你为什么",
         "你怎么",
     )
-    return any(marker in lowered for marker in task_markers) and not any(
-        marker in lowered or marker in text for marker in complaint_markers
+    role_prefixed_payload = len(text) > 500 and re.match(
+        r"^[a-z][a-z0-9 _-]{0,40}\s+agent[.:]\s",
+        lowered,
+    )
+    direct_complaint = re.search(
+        r"^(?:you|this|the (?:agent|tool|output)).{0,60}"
+        r"\b(?:bad|broken|wrong|failed|useless)\b",
+        lowered,
+    )
+    complaint_prefix = lowered[:300]
+    return (
+        role_prefixed_payload or any(marker in lowered for marker in task_markers)
+    ) and not direct_complaint and not any(
+        marker in complaint_prefix or marker in text[:300] for marker in complaint_markers
     )
 
 
