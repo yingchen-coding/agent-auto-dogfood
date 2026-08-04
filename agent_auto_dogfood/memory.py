@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
-from .analyzer import Message, redact_text
+from .analyzer import Message, _truncate_evidence, redact_text
 
 MEMORY_READ_TERMS = (
     "read memory",
@@ -106,9 +106,7 @@ def render_memory_markdown(report: dict[str, Any]) -> str:
         return "\n".join(lines) + "\n"
     for item in evidence:
         signals = ", ".join(item.get("signals") or [])
-        text = str(item.get("text") or "")
-        if len(text) > 180:
-            text = text[:177] + "..."
+        text = _truncate_evidence(str(item.get("text") or ""), 180)
         lines.append(f"- {item.get('session_id', '')}: {signals} — {text}")
     return "\n".join(lines) + "\n"
 

@@ -696,6 +696,28 @@ def test_memory_markdown_redacts_evidence():
     assert "[REDACTED_EMAIL]" in markdown
 
 
+def test_memory_markdown_collapses_newlines_and_escapes_markdown():
+    # Evidence text often contains embedded newlines and pasted markdown syntax from real
+    # traces; both must not corrupt the generated bullet-list report.
+    report = build_memory_benchmark(
+        [
+            Message(
+                session_id="s1",
+                role="user",
+                text="read memory\nI said the plan | table has `code` in it, you forgot",
+            )
+        ]
+    )
+    markdown = render_memory_markdown(report)
+    evidence_lines = [line for line in markdown.splitlines() if line.startswith("- s1:")]
+    assert len(evidence_lines) == 1
+    assert "\n" not in evidence_lines[0]
+    assert "read memory I said the plan" in evidence_lines[0]
+    assert "`code`" not in evidence_lines[0]
+    assert "'code'" in evidence_lines[0]
+    assert "\\|" in evidence_lines[0]
+
+
 def test_cli_can_emit_memory_json(tmp_path):
     trace = tmp_path / "traces.jsonl"
     trace.write_text(
